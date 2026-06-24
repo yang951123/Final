@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>未來霓虹城：貪食蛇極速突圍 (CyberCity: Neon Snake Escape)</title>
+    <style>
+        /* ==========================================================================
+           1. 全局樣式與賽博龐克深色調 (Cyberpunk Theme)
+           ========================================================================== */
+        body {
+            background-color: #121214; /* 帶暗藍色調的深灰，防止眼睛疲勞 */
+            color: #e0e0e0;
+            font-family: 'Times New Roman', "Microsoft JhengHei", sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: #39ff14; /* 霓虹綠 */
+            text-shadow: 0 0 10px #39ff14;
+            margin-bottom: 10px;
+            font-size: 28px;
+            text-align: center;
+        }
+
+        /* ==========================================================================
+           2. 改善後的三欄式佈局 (CSS Grid)
+           ========================================================================== */
+        .game-container {
+            display: grid;
+            grid-template-columns: 280px 600px 280px; /* 左、中、右明確分流 */
+            gap: 20px;
+            width: 1200px;
+            margin-top: 10px;
+        }
+
+        /* 左側：故事背景與操作說明區 */
+        .instruction-panel {
+            background-color: #1a1a1f;
+            border: 1px solid #39ff14; /* 霓虹綠邊框 */
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(57, 255, 20, 0.2);
+        }
+
+        /* 中央：主要遊戲 Canvas 畫布區 */
+        .canvas-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        canvas {
+            background-color: #050508;
+            border: 3px solid #00b4db; /* 極光藍邊框 */
+            box-shadow: 0 0 25px #00b4db; /* 霓虹發光特效 */
+            border-radius: 4px;
+        }
+
+        /* 右側：即時數據面板與控制鈕 */
+        .data-panel {
+            background-color: #1a1a1f;
+            border: 1px solid #ff3131; /* 霓虹紅邊框 */
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(255, 49, 49, 0.2);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* ==========================================================================
+           3. UI 元素與互動按鈕樣式
+           ========================================================================== */
+        .panel-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #555;
+            padding-bottom: 5px;
+            text-align: center;
+        }
+
+        .panel-title.green { color: #39ff14; border-color: #39ff14; }
+        .panel-title.red { color: #ff3131; border-color: #ff3131; }
+
+        .data-item {
+            font-size: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .data-value {
+            font-weight: bold;
+            color: #fff;
+            font-family: 'Times New Roman', serif;
+        }
+
+        .item-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .item-list li {
+            margin-bottom: 12px;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .control-btn {
+            background: transparent;
+            border: 2px solid #ffd700; /* 電光金邊框 */
+            color: #ffd700;
+            padding: 12px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+        }
+
+        .control-btn:hover {
+            background-color: #ffd700;
+            color: #121214;
+            box-shadow: 0 0 15px #ffd700;
+        }
+
+        #game-over-msg {
+            color: #ff3131;
+            font-size: 20px;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 15px;
+            min-height: 30px;
+            text-shadow: 0 0 10px #ff3131;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>未來霓虹城：貪食蛇極速突圍</h1>
+
+    <div class="game-container">
+        <div class="instruction-panel">
+            <div class="panel-title green">城市世界觀</div>
+            <p style="font-size: 13px; line-height: 1.5; margin-bottom: 15px; text-align: justify;">
+                你是一條在賽博龐克網格城中流竄的「數據能源蛇」。為了躲避系統清除，你必須在封鎖線內不斷吸收散落的核心能源。
+            </p>
+            <div class="panel-title green">操作密鑰</div>
+            <ul class="item-list">
+                <li>• <b>移動</b>：方向鍵 <b>↑ ↓ ← →</b> 或 <b>W A S D</b></li>
+                <li>• <b>規則</b>：不可撞擊自身或城市外牆邊界。</li>
+            </ul>
+            <div class="panel-title green">物資與障礙明細</div>
+            <ul class="item-list">
+                <li><span style="color:#00b4db;">■</span> <b>藍色核心</b>：基礎物資，+1 能源。</li>
+                <li><span style="color:#ffd700;">■</span> <b>黃金能源</b>：限時超載，+5 能源。</li>
+                <li><span style="color:#ff3131;">■</span> <b>毒青蘋果</b>：系統病毒，-1 能源且減速。</li>
+                <li><span style="color:#888888;">■</span> <b>灰色路障</b>：城市障礙物，撞擊直接崩潰。</li>
+            </ul>
+        </div>
+
+        <div class="canvas-area">
+            <canvas id="gameCanvas" width="600" height="400"></canvas>
+            <div id="game-over-msg"></div>
+        </div>
+
+        <div class="data-panel">
+            <div>
+                <div class="panel-title red">即時核心數據</div>
+                <div class="data-item">
+                    <span>當前能量 (Score):</span>
+                    <span class="data-value" id="scoreVal">0</span>
+                </div>
+                <div class="data-item">
+                    <span>最高紀錄 (High):</span>
+                    <span class="data-value" id="highScoreVal">0</span>
+                </div>
+                <div class="data-item">
+                    <span>裝甲長度 (Length):</span>
+                    <span class="data-value" id="lengthVal">3</span>
+                </div>
+                <div class="data-item">
+                    <span>突圍速度 (Speed):</span>
+                    <span class="data-value" id="speedValText">常規</span>
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button class="control-btn" id="pauseBtn">城市暫停</button>
+                <button class="control-btn" id="speedBtn">難度：常規</button>
+                <button class="control-btn" id="restartBtn" style="border-color: #00b4db; color: #00b4db; text-shadow: 0 0 5px rgba(0,180,219,0.5);">重置系統</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 介面數據網頁元素
+        const scoreVal = document.getElementById('scoreVal');
+        const highScoreVal = document.getElementById('highScoreVal');
+        const lengthVal = document.getElementById('lengthVal');
+        const speedValText = document.getElementById('speedValText');
+        const gameOverMsg = document.getElementById('game-over-msg');
+        
+        const pauseBtn = document.getElementById('pauseBtn');
+        const speedBtn = document.getElementById('speedBtn');
+        const restartBtn = document.getElementById('restartBtn');
+
+        // 網格參數設定
+        const gridSize = 20;
+        const tileCountX = canvas.width / gridSize;
+        const tileCountY = canvas.height / gridSize;
+
+        // 遊戲核心狀態變數
+        let snake = [];
+        let dx = gridSize; // 初始向右移動
+        let dy = 0;
+        
+        let foodBlue = {};  // 藍色核心 (+1)
+        let foodGold = {};  // 黃金超載 (+5，限時)
+        let foodPoison = {};// 毒蘋果 (-1)
+        let obstacles = []; // 城市灰色路障群
+
+        let score = 0;
+        let highScore = 0;
+        let isPaused = false;
+        let isGameOver = false;
+        
+        let baseSpeedDelay = 120; // 常規速度延遲 (毫秒)
+        let gameSpeedDelay = 120;
+        let gameInterval = null;
+        let goldFoodTimer = 0;    // 黃金食物限時倒數
+
+        // 初始化遊戲
+        function initGame() {
+            snake = [
+                {x: 160, y: 200},
+                {x: 140, y: 200},
+                {x: 120, y: 200}
+            ];
+            dx = gridSize;
+            dy = 0;
+            score = 0;
+            isGameOver = false;
+            isPaused = false;
+            goldFoodTimer = 0;
+            gameOverMsg.innerText = "";
+            scoreVal.innerText = score;
+            lengthVal.innerText = snake.length;
+            
+            pauseBtn.innerText = "城市暫停";
+            pauseBtn.style.borderColor = "#ffd700";
+            pauseBtn.style.color = "#ffd700";
+
+            generateObstacles();
+            spawnFood('blue');
+            spawnFood('poison');
+            foodGold = {x: -100, y: -100}; // 初始隱藏黃金能源
+
+            if (gameInterval) clearInterval(gameInterval);
+            startGameLoop();
+        }
+
+        // 生成固定城市路障 (5個不重疊的路障)
+        function generateObstacles() {
+            obstacles = [];
+            while(obstacles.length < 5) {
+                let obs = {
+                    x: Math.floor(Math.random() * tileCountX) * gridSize,
+                    y: Math.floor(Math.random() * tileCountY) * gridSize
+                };
+                // 避免生成在初始蛇身範圍內
+                if(obs.y === 200 && obs.x >= 100 && obs.x <= 200) continue;
+                obstacles.push(obs);
+            }
+        }
+
+        // 隨機物資座標刷新
+        function spawnFood(type) {
+            let posX, posY;
+            let onSolid = true;
+            
+            while(onSolid) {
+                posX = Math.floor(Math.random() * tileCountX) * gridSize;
+                posY = Math.floor(Math.random() * tileCountY) * gridSize;
+                
+                // 確保食物不會踩在蛇身或路障上
+                onSolid = snake.some(part => part.x === posX && part.y === posY) ||
+                          obstacles.some(obs => obs.x === posX && obs.y === posY);
+            }
+
+            if (type === 'blue') foodBlue = {x: posX, y: posY};
+            if (type === 'gold') {
+                foodGold = {x: posX, y: posY};
+                goldFoodTimer = 40; // 存在大約 40 個幀循環
+            }
+            if (type === 'poison') foodPoison = {x: posX, y: posY};
+        }
+
+        // 主計時循環
+        function startGameLoop() {
+            gameInterval = setInterval(() => {
+                if (!isPaused && !isGameOver) {
+                    updateGame();
+                }
+                drawGame();
+            }, gameSpeedDelay);
+        }
+
+        // 更新數據核心邏輯
+        function updateGame() {
+            // 1. 移動蛇頭
+            const head = {x: snake[0].x + dx, y: snake[0].y + dy};
+
+            // 2. 邊界與路障碰撞偵測
+            if (head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height ||
+                obstacles.some(obs => obs.x === head.x && obs.y === head.y) ||
+                snake.some(part => part.x === head.x && part.y === head.y)) {
+                
+                isGameOver = true;
+                gameOverMsg.innerText = "【系統崩潰：核心突圍失敗】";
+                if (score > highScore) {
+                    highScore = score;
+                    highScoreVal.innerText = highScore;
+                }
+                return;
+            }
+
+            // 插入新蛇頭
+            snake.unshift(head);
+
+            // 3. 吃到藍色核心
+            if (head.x === foodBlue.x && head.y === foodBlue.y) {
+                score += 1;
+                scoreVal.innerText = score;
+                lengthVal.innerText = snake.length;
+                spawnFood('blue');
+                // 10% 機率觸發黃金超載物資
+                if (Math.random() < 0.3 && goldFoodTimer <= 0) {
+                    spawnFood('gold');
+                }
+            } 
+            // 4. 吃到黃金超載能源
+            else if (head.x === foodGold.x && head.y === foodGold.y && goldFoodTimer > 0) {
+                score += 5;
+                scoreVal.innerText = score;
+                lengthVal.innerText = snake.length;
+                foodGold = {x: -100, y: -100};
+                goldFoodTimer = 0;
+            }
+            // 5. 吃到毒青蘋果病毒
+            else if (head.x === foodPoison.x && head.y === foodPoison.y) {
+                score = Math.max(0, score - 1); // 最低0分
+                scoreVal.innerText = score;
+                if (snake.length > 2) snake.pop(); // 縮減長度懲罰
+                lengthVal.innerText = snake.length;
+                spawnFood('poison');
+                
+                // 觸發短暫中毒減速
+                gameSpeedDelay = baseSpeedDelay + 60;
+                clearInterval(gameInterval);
+                startGameLoop();
+            }
+            else {
+                // 一般移動，移除蛇尾
+                snake.pop();
+            }
+
+            // 黃金食物計時器減量
+            if (goldFoodTimer > 0) {
+                goldFoodTimer--;
+                if (goldFoodTimer === 0) {
+                    foodGold = {x: -100, y: -100}; // 超時消失
+                }
+            }
+        }
+
+        // Canvas 霓虹畫面渲染
+        function drawGame() {
+            // 清空畫布
+            ctx.fillStyle = '#050508';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 1. 繪製灰色路障
+            ctx.fillStyle = '#555558';
+            obstacles.forEach(obs => {
+                ctx.fillRect(obs.x + 1, obs.y + 1, gridSize - 2, gridSize - 2);
+            });
+
+            // 2. 繪製特殊物資物（加入發光模擬效果）
+            // 藍色核心
+            ctx.fillStyle = '#00b4db';
+            ctx.shadowColor = '#00b4db';
+            ctx.shadowBlur = 8;
+            ctx.fillRect(foodBlue.x + 2, foodBlue.y + 2, gridSize - 4, gridSize - 4);
+
+            // 黃金能源 (限時閃爍)
+            if (goldFoodTimer > 0 && goldFoodTimer % 2 === 0) {
+                ctx.fillStyle = '#ffd700';
+                ctx.shadowColor = '#ffd700';
+                ctx.shadowBlur = 15;
+                ctx.fillRect(foodGold.x + 1, foodGold.y + 1, gridSize - 2, gridSize - 2);
+            }
+
+            // 毒蘋果
+            ctx.fillStyle = '#ff3131';
+            ctx.shadowColor = '#ff3131';
+            ctx.shadowBlur = 8;
+            ctx.fillRect(foodPoison.x + 2, foodPoison.y + 2, gridSize - 4, gridSize - 4);
+
+            // 3. 繪製數據蛇身
+            snake.forEach((part, index) => {
+                if (index === 0) {
+                    ctx.fillStyle = '#39ff14'; // 蛇頭：亮綠
+                    ctx.shadowColor = '#39ff14';
+                } else {
+                    ctx.fillStyle = '#1fbc0a'; // 蛇身：暗綠線路
+                    ctx.shadowColor = '#1fbc0a';
+                }
+                ctx.shadowBlur = index === 0 ? 10 : 4;
+                ctx.fillRect(part.x + 1, part.y + 1, gridSize - 2, gridSize - 2);
+            });
+
+            // 重設陰影，避免影響其他元件
+            ctx.shadowBlur = 0;
+        }
+
+        // ==========================================================================
+        // 5. 事件監聽器 (鍵盤控制與按鈕功能串接)
+        // ==========================================================================
+        window.addEventListener('keydown', e => {
+            if (isPaused || isGameOver) return;
+            
+            switch(e.key) {
+                case 'ArrowUp':
+                case 'w':
+                case 'W':
+                    if (dy !== gridSize) { dx = 0; dy = -gridSize; }
+                    break;
+                case 'ArrowDown':
+                case 's':
+                case 'S':
+                    if (dy !== -gridSize) { dx = 0; dy = gridSize; }
+                    break;
+                case 'ArrowLeft':
+                case 'a':
+                case 'A':
+                    if (dx !== gridSize) { dx = -gridSize; dy = 0; }
+                    break;
+                case 'ArrowRight':
+                case 'd':
+                case 'D':
+                    if (dx !== -gridSize) { dx = gridSize; dy = 0; }
+                    break;
+            }
+        });
+
+        // 暫停按鈕邏輯
+        pauseBtn.addEventListener('click', () => {
+            if (isGameOver) return;
+            isPaused = !isPaused;
+            if (isPaused) {
+                pauseBtn.innerText = "繼續突圍";
+                pauseBtn.style.borderColor = "#ff3131";
+                pauseBtn.style.color = "#ff3131";
+            } else {
+                pauseBtn.innerText = "城市暫停";
+                pauseBtn.style.borderColor = "#ffd700";
+                pauseBtn.style.color = "#ffd700";
+            }
+        });
+
+        // 難度/速度切換邏輯
+        speedBtn.addEventListener('click', () => {
+            if (baseSpeedDelay === 120) {
+                baseSpeedDelay = 60; // 極速模式 (刷新延遲減半)
+                speedBtn.innerText = "難度：極速";
+                speedValText.innerText = "極速突圍";
+                speedValText.style.color = "#ff3131";
+            } else {
+                baseSpeedDelay = 120; // 常規模式
+                speedBtn.innerText = "難度：常規";
+                speedValText.innerText = "常規";
+                speedValText.style.color = "#fff";
+            }
+            
+            if (!isPaused && !isGameOver) {
+                gameSpeedDelay = baseSpeedDelay;
+                clearInterval(gameInterval);
+                startGameLoop();
+            }
+        });
+
+        // 系統重置邏輯
+        restartBtn.addEventListener('click', initGame);
+
+        // 啟動系統
+        initGame();
+    </script>
+</body>
+</html>
